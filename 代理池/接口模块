@@ -1,0 +1,58 @@
+from flask import Flask, g
+from 代理池_存储模块 import RedisClient
+
+__all__ = ['app']
+app = Flask(__name__)
+
+def get_conn():
+    if not hasattr(g, 'redis'):
+        g.redis = RedisClient()
+    return g.redis
+# 这是唯一一个与redis数据库连接的函数，其返回值是一个redis数据库的实例对象
+# 其余由@app标识的函数都负责与浏览器的127.0.0.1Web API接口连接
+# 浏览器连接方法都会调用数据库连接函数的返回值——数据库的实例对象conn；
+# 浏览器连接方法中，通过实例对象conn可以调用代理池_存储模块中的全部方法！
+
+# 基于此，我们可以对flask模块做出评价————连接本地数据库&Web API接口
+
+
+@app.route('/')
+def index():
+    return '<h2>Welcome to Proxy Pool System</h2>'
+
+@app.route('/random')
+def get_proxy():
+    """
+    获取随机可用代理
+    :return: 随机代理
+    """
+    conn = get_conn()
+    return conn.random()
+
+@app.route('/count')
+def get_counts():
+    """
+    获取代理池总量
+    :return: 代理池总量
+    """
+    conn = get_conn()
+    return str(conn.count())
+
+
+
+
+import requests
+
+PROXY_POOL_URL = 'http://127.0.0.1:5555/random'
+
+def get_proxy_from_web():
+    try:
+        response = requests.get(PROXY_POOL_URL)
+        if response.status_code == 200:
+            return response.text
+    except ConnectionError:
+        return None
+# 这个def写在任何class内，都可以直接从web API接口处获取随机的可用代理
+
+if __name__ == '__main__':
+    app.run()
