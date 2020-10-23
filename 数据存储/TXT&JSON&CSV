@@ -1,0 +1,109 @@
+import urllib.request
+from bs4 import BeautifulSoup
+import json
+import csv
+
+
+# （1）
+# 将爬取内容保存为txt常用格式：
+response=urllib.request.urlopen('http://www.zongheng.com/')
+str=response.read().decode('utf-8')
+soup=BeautifulSoup(str,'lxml')
+for div in soup.select('ul li a div'):
+    with open('纵横小说网.txt','a',encoding='utf-8') as file:
+        file.write('\n'.join([div.name,div.attrs['class'][0],div.string]))
+        file.write('\n'+'='*50+'\n')
+# w只写模式（创建）
+# a只写模式（创建）（追加写）
+# r只读模式
+# *+ 为度写模式
+# *b为二进制模式
+# r、tb、r+、rb+ 指针放在文件开头处
+# a、ab、a+、ab+ 指针放在文件末尾处
+# w、wb、w+、wb+ 将原文件删除，重新写入文件
+
+
+
+# （2）
+# JSON文件中，每个字典就是一个对象，其中键名为整数&字符串，值可以为任意类型
+# JSON文件中，由字典作为基本元素可以构成列表
+str="""[{"name":"Bob","gender":"male"},{"name":"Selina","gender":"female"}]"""
+# str为str类型
+data_json=json.loads(str)
+# data为list类型，与data==[{"name":"Bob","gender":"male"},{"name":"Selina","gender":"female"}]等价
+str_dumps=json.dumps(data_json,indent=2)
+# str_new为str类型
+# 其中indent是缩进位符
+#
+# 遍历JSON对象的方法
+for json_dir in data_json:
+    print(json_dir.get('name'))
+# 单个JSON对象
+print(data_json[0].get('name'))
+# 为JSON对象，提供默认的值
+print(data_json[0].get('mxk','niubi'))
+
+
+
+# (3)
+with open('data.json','w') as file:
+    file.write(str_dumps)
+# 必须以str格式写入json文件中
+with open('data.json','r') as file:
+    str_read=json.loads(file.read())
+print(str_read)
+print(str_dumps)
+# 从json文件中读取的是str格式
+
+
+# （4）
+# 针对中文出现的情况：
+str="""[{"name":"诺手","gender":"male"},{"name":"盖伦","gender":"female"}]"""
+data_json=json.loads(str)
+str_dumps=json.dumps(data_json,indent=2,ensure_ascii=False)
+
+with open('data_中文.json','w',encoding='utf-8') as file:
+    file.write(str_dumps)
+
+with open('data_中文.json','r',encoding='utf-8') as file:
+    str_read=json.loads(file.read())
+
+print(str_read)
+print(str_dumps)
+# 其中str_read没有缩进，但是str_dumps有缩进
+
+
+
+# (5)
+# CSV文件的写入和读取
+
+# 以列表形式写入CSV文件
+with open('data_csv.csv','w',encoding='utf-8') as file:
+    writer=csv.writer(file,delimiter=' ')
+    writer.writerow(['id', 'name', 'age'])
+    writer.writerow(['10001', '剑圣', '20'])
+    writer.writerow(['10002', '贾科斯', '21'])
+    writer.writerow(['10003', 'Bob', '22'])
+# 注意，将保存的data_csv文件用Excal打开，则中文不能正常加载；用记事本打开，中文能正常加载
+
+# 以字典/JSON对象形式写入CSV文件
+with open('data_csv_dict.csv','w',encoding='utf-8') as file:
+    writer=csv.DictWriter(file,fieldnames=['id','name','age'])
+    writer.writeheader()
+    writer.writerow({'id': '10001', 'name': '金克斯', 'age': '20'})
+    writer.writerow({'id': '10002', 'name': '拉克斯', 'age': '21'})
+    writer.writerow({'id': '10001', 'name': '海克斯', 'age': '22'})
+
+# 以字典/JSON对象形式追加写入CSV文件
+with open('data_csv_dict.csv','a',encoding='utf-8') as file:
+    writer = csv.DictWriter(file, fieldnames=['id', 'name', 'age'])
+    writer.writerow({'id': '10001', 'name': '追加_害克斯', 'age': '22'})
+
+# 读取CSV文件
+with open('data_csv_dict.csv','r',encoding='utf-8') as file:
+    reader=csv.reader(file)
+    for row in reader:
+        if(row!=[]):
+            print(row)
+
+
