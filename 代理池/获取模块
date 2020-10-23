@@ -1,0 +1,117 @@
+import json
+from pyquery import PyQuery as pq
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+
+# import tesserocr
+import pytesseract
+from PIL import Image
+
+class ProxyMetaclass(type):
+    def __new__(cls, name, bases, attrs):
+        count = 0
+        attrs['__CrawlFunc__'] = []
+        for k, v in attrs.items():
+            if 'crawl_' in k:
+                attrs['__CrawlFunc__'].append(k)
+                count += 1
+        attrs['__CrawlFuncCount__'] = count
+        return type.__new__(cls, name, bases, attrs)
+# 真正执行获取操作的时Crawler类，而ProxyMetaclass时其父类，即父类的属性和方法都会继承给子类
+# 其中attrs就是Crawleer的属性&方法，每个k都是Crawler的方法的名称，以此来获取抓取方法
+# 最后Crawler中多了两个属性__CrawlFunc__、__CrawlFuncCount__
+# __CrawlFunc__是一个列表，包含了所有ctawler_开头的方法
+# __CrawlFuncCount__是一个int，即ctawler_开头的方法的总数
+
+
+class Crawler(object, metaclass=ProxyMetaclass):
+    def get_proxies(self, callback):
+        proxies = []
+        for proxy in eval("self.{}()".format(callback)):
+            print(' 成功获取到代理 ', proxy)
+            proxies.append(proxy)
+        return proxies
+# 事实上，crawler_开头的方法会作为get_proxies方法的回调函数
+# 即get_proxies就是为了调用指定的crawler_开头的方法；并返回crawler_开头的方法爬取到的proxies
+
+    def crawl_daili66(self, page_count=4):
+        """
+        获取代理 66
+        :param page_count: 页码
+        :return: 代理
+        """
+        start_url = 'http://www.66ip.cn/{}.html'
+        urls = [start_url.format(page) for page in range(1, page_count + 1)]
+        for url in urls:
+            print('Crawling', url)
+            path = 'E:\Anaconda3\Scripts\chromedriver.exe'
+            chrome_options = Options()
+            chrome_options.add_argument('--headless')
+            chrome_options.add_argument('--disable-gpu')
+            browser = webdriver.Chrome(executable_path=path, chrome_options=chrome_options)
+            browser.get(url)
+            html = browser.page_source
+            browser.close()
+            if html:
+                doc = pq(html)
+                trs = doc('.containerbox table tr:gt(0)').items()
+                for tr in trs:
+                    ip = tr.find('td:nth-child(1)').text()
+                    port = tr.find('td:nth-child(2)').text()
+                    yield ':'.join([ip, port])
+
+
+    def crawl_kuaidaili(self, page_count=5):
+        """
+        获取代理 快代理
+        :param page_count: 页码
+        :return: 代理
+        """
+        start_url = 'https://www.kuaidaili.com/free/inha/{}'
+        urls = [start_url.format(page) for page in range(1, page_count + 1)]
+        for url in urls:
+            print('Crawling', url)
+            path = 'E:\Anaconda3\Scripts\chromedriver.exe'
+            chrome_options = Options()
+            chrome_options.add_argument('--headless')
+            chrome_options.add_argument('--disable-gpu')
+            browser = webdriver.Chrome(executable_path=path, chrome_options=chrome_options)
+            browser.get(url)
+            html = browser.page_source
+            browser.close()
+            if html:
+                doc = pq(html)
+                trs = doc('table.table.table-bordered.table-striped tr:gt(1)').items()
+                for tr in trs:
+                    ip = tr.find('td:nth-child(1)').text()
+                    port = tr.find('td:nth-child(2)').text()
+                    yield ':'.join([ip, port])
+
+
+    def crawl_xicidaili(self, page_count=2):
+        """
+        获取代理 快代理
+        :param page_count: 页码
+        :return: 代理
+        """
+        start_url = 'https://www.xicidaili.com/nn/{}'
+        urls = [start_url.format(page) for page in range(1, page_count + 1)]
+        for url in urls:
+            print('Crawling', url)
+            path = 'E:\Anaconda3\Scripts\chromedriver.exe'
+            chrome_options = Options()
+            chrome_options.add_argument('--headless')
+            chrome_options.add_argument('--disable-gpu')
+            browser = webdriver.Chrome(executable_path=path, chrome_options=chrome_options)
+            browser.get(url)
+            html = browser.page_source
+            browser.close()
+            if html:
+                doc = pq(html)
+                trs = doc('table#ip_list tr:gt(1)').items()
+                for tr in trs:
+                    ip = tr.find('td:nth-child(2)').text()
+                    port = tr.find('td:nth-child(3)').text()
+                    yield ':'.join([ip, port])
+
+
