@@ -1,0 +1,84 @@
+GENERATOR_MAP={'weibo':'WeiboCookiesGenerator'}
+# 产生模块类，如扩展其他站点，请在此配置
+TESTER_MAP={'weibo':'WeiboValidTester'}
+# 测试模块类，如扩展其他站点，请在此配置
+# 对于这两个字典中的每一对键值对，这些键值对之间并不是相互竞争
+# 只要提前构建好【获取模块】【检测模块】中针对各个网站的的子类；并且准备好各个网站的【账户密码】
+# 就可以构建一个同时支持多个网站登录的Cookies池
+
+
+CYCLE=120
+API_PROCESS=True
+GENERATOR_PROCESS=True
+VALID_PROCESS=True
+API_HOST='0.0.0.0'
+API_PORT=5000
+
+import time
+from multiprocessing import Process
+from Cookies池_存储模块 import RedisClient
+from Cookies池_接口模块 import app
+from Cookies池_检测模块 import *
+from Cookies池_获取模块 import *
+
+
+
+class Scheduler(object):
+    @staticmethod
+    def valid_cookie(cycle=CYCLE):
+        while True:
+            print('Cookies 检测进程开始运行 ')
+            try:
+                for website, cls in TESTER_MAP.items():
+                # 每次for循环，就针对某一网站【获取】
+                    tester = eval(cls + '(website="' + website + '")')
+                    tester.run()
+                    print(website,'Cookies 检测完成 ')
+                    del tester
+                    time.sleep(cycle)
+            except Exception as e:
+                print(e.args)
+
+    @staticmethod
+    def generate_cookie(cycle=CYCLE):
+        while True:
+            print('Cookies 生成进程开始运行 ')
+            try:
+                for website, cls in GENERATOR_MAP.items():
+                # 每次for循环，就针对某一网站【获取】
+                    generator = eval(cls + '(website="' + website + '")')
+                    generator.run()
+                    print(website,'Cookies 生成完成 ')
+                    generator.close()
+                    time.sleep(cycle)
+            except Exception as e:
+                print(e.args)
+
+    @staticmethod
+    def api():
+        print('API 接口开始运行 ')
+        app.run(host=API_HOST, port=API_PORT)
+
+    def run(self):
+        print('必须提醒的是：在开始搭建Cookies池之前，需要首先将将爬取网站的账户名密码输入Redis中')
+        print('这一过程可以独立于整个Cookies框架外，再利用Redis可视化工具查看即可')
+
+        if API_PROCESS:
+            api_process = Process(target=Scheduler.api)
+            api_process.start()
+
+        if GENERATOR_PROCESS:
+            generate_process = Process(target=Scheduler.generate_cookie)
+            generate_process.start()
+
+        if VALID_PROCESS:
+            valid_process = Process(target=Scheduler.valid_cookie)
+            valid_process.start()
+
+
+
+if __name__=='__main__':
+    spider_cookies=Scheduler()
+    spider_cookies.run()
+
+
