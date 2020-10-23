@@ -1,0 +1,71 @@
+VALID_STATUS_CODES = [200]
+TEST_URL = 'http://www.baidu.com'
+BATCH_TEST_SIZE = 100
+# BATCH_TEST_SIZE为每轮异步操作所能并发完成的任务个数
+
+
+import time
+import asyncio
+import aiohttp
+from 代理池_存储模块 import RedisClient
+from aiohttp.client_exceptions import ClientConnectorError
+from aiohttp.client_exceptions import ClientError
+
+
+class Tester(object):
+    def __init__(self):
+        self.redis = RedisClient()
+
+# 输入一个参数proxy，根据反馈将redis库中的proxy对应的分数调为100或减1；
+    async def test_single_proxy(self, proxy):
+        """
+        测试单个代理
+        :param proxy: 单个代理
+        :return: None
+        """
+        conn = aiohttp.TCPConnector(verify_ssl=False)
+        async with aiohttp.ClientSession(connector=conn) as session:
+            try:
+                if isinstance(proxy, bytes):               # 为了确保proxy是str类型而不是二进制
+                    proxy = proxy.decode('utf-8')
+                real_proxy = 'http://' + proxy
+                print(' 正在测试 ', proxy)
+                async with session.get(TEST_URL, proxy=real_proxy, timeout=15) as response:
+                    if response.status in VALID_STATUS_CODES:
+                        self.redis.max(proxy)
+                        print(' 代理可用 ', proxy)
+                    else:
+                        self.redis.decrease(proxy)
+                        print(' 请求响应码不合法 ', proxy)
+            except (ClientError, ClientConnectorError, TimeoutError, AttributeError):
+                self.redis.decrease(proxy)
+                print(' 代理请求失败 ', proxy)
+# 访问成功，返回状态码为200时将proxy分数修改为100
+# 访问失败或返回状态码不是200时将proxy分数减1
+# aiohttp、conn、async都是异步操作的关键字。
+# 异步类似于JavaScript中的回调，即在请求session.get发出后，程序可以去执行其它事情
+# 当相应到达时，程序再去处理这个相应，因此即时我们给session.get请求设置的等待时间为15也可以保持高效的proxy检测操作
+
+
+    def run(self):
+        """
+        测试主函数
+        :return: None
+        """
+        print(' 测试器开始运行 ')
+        try:
+            proxies = self.redis.all()
+            # 开始异步
+            loop = asyncio.get_event_loop()
+            # 批量测试
+            # 每轮异步操作同时并发执行BATCH_TEST_SIZE个proxy：test_proxies列表
+            for i in range(0, len(proxies), BATCH_TEST_SIZE):
+                test_proxies = proxies[i:i + BATCH_TEST_SIZE]
+                tasks = [self.test_single_proxy(proxy) for proxy in test_proxies]
+                # 每轮异步操作的具体任务
+                loop.run_until_complete(asyncio.wait(tasks))
+                # 等待当前异步操作的全部任务结束
+                time.sleep(5)
+        except Exception as e:
+            print(' 测试器发生错误 ', e.args)
+
