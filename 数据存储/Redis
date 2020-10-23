@@ -1,0 +1,223 @@
+from redis import StrictRedis
+redis=StrictRedis(host='127.0.0.1',port=6379,db=0,encoding='utf-8')
+# redis是一个数据库对象，其中每一个键对应一个元素
+# 这个元素可以是【字符串、列表、集合、有序集合、字典】
+# 而在字典中也有键值对，所以要根据上下文区分这两种键
+
+
+# #（1）
+# # 针对键的判断和操作方式；
+# # Redis中储存二进制数据。以下语句的返回值位二进制，但是经过decode('utf-8')译码后得到一个str类型
+#
+# print(redis.exists('name'))
+# # 判断是否存在指定键
+# print(redis.delete('name'))
+# # 删除指定键
+# print(redis.keys('n*'))
+# # 获取匹配规则的所有键
+# print(redis.randomkey())
+# # 随机返回一个键
+# print(redis.rename('name','new_name'))
+# # 为键重新命名
+# print(redis.dbsize())
+# # 返回当前数据库redis中键的总数
+#
+# redis.expire('name',2)
+# # 将name整个键的过期时间设置为2秒
+# # 如果没有设置，则默认为-1表示这个键永不过期
+# print(redis.ttl('name'))
+# # 获取指定节点的过期时间
+#
+# redis.move('name',1)
+# # 将指定键及其元素移动到其他数据库，该数据库待会为2，这个2就是在StrictRedis创建数据库的db参数
+# redis.flushdb()
+# # 删除当前指定数据库中的所有键及其元素
+# redis.flushall()
+# # 删除所有数据库中的所有键及其元素
+
+
+
+
+
+
+# #（2）
+# # 键-字符串
+# redis.set('AD','艾希')
+# # 设置键名AD-键值艾希
+# redis.mset({'AD':'艾希','TOP':'盖伦'})
+# # 成批设置键值对
+# redis.setnx('TOP','盖伦')
+# # 如果不存在TOP这个键，则新增一个键-元素的组合
+# redis.setex('mid',1,'卡萨丁')
+# # 设置一个键值对，同时规定该键值对得有效期，到期后删除键和值（键值对同时删除）
+# redis.setrange('AD',6,'希维尔')
+# # 针对已有键值对AD得情况，则以原字符串首位为0_index，从6_index开始写入新得字符串
+# # (仅针对一般字符串，不适用于汉字，因为每个汉字的在储存的二进制长度不同)
+# print(redis.getset('AD','希维尔'))
+# # 返回键AD原本的值艾希，并给键AD赋予新的值希维尔
+#
+# print(redis.get('AD'))
+# # 返回指定键的值
+# print(redis.mget(['AD','TOP']))
+# # 批量获得指定键的值
+# print(redis.getrange('AD',1,4))
+# # 获得指定键的1_index到4_index的值，同样的这个方法不适用于中文
+
+
+
+
+
+
+# #（3）
+# # 键-列表
+#
+# print(redis.llen())
+# # 返回键名为list_1的列表的长度
+#
+# redis.lset('list_1',1,5)
+# # 赋值list_1[1]=5
+# print(redis.lindex('list_1',1))
+# # 返回list_1[1]
+#
+# redis.lrem('list_1',2,3)
+# # 按值删除；从list_1中删除至多两个3
+# # 返回一个int，代表了实际上删除了列表中几个3
+# redis.ltrim('list_1',1,3)
+# # 删除列表内的其它元素，仅保留索引为1到3的元素
+#
+# redis.rpush('list_1',4,5,6)
+# # 向键名为list_1的列表尾部添加，[……,4,5,6]
+# redis.lpush('list_1',3,2,1)
+# # 向键名为list_1的列表头部田间，[1,2,3,……]
+# # （注意这里插入的顺序和我们目的不同）
+#
+# print(redis.lpop('list_1'))
+# # 返回并删除列表中第一个元素
+# print(redis.blpop('list_1',timeout=0))
+# # 如果列表为空，会阻塞等待timeout秒，如果timeout为0，会永久阻塞等待
+# print(redis.rpop('list_1'))
+# # 返回并删除列表中最后一个元素
+# print(redis.brpop('list_1',timeout=0))
+# # 如果列表为空，会阻塞等待timeout秒，如果timeout为0，会永久阻塞等待
+#
+#
+# # 事实上，如果我们将一个列表的左边视为队列头，右端视为队列尾
+# # 那么我们可以构造出队列数据结构；rpush入队列，lpop出队列
+# redis.rpoplpush('list_1','list_2')
+# # 将列表list_1尾部元素拿出，放在列表list_2头部
+
+
+
+
+
+
+# #（4）
+# # 键-集合，集合就是不允许出现重复元素的列表
+# # 此外，集合是没有index这个概念的
+#
+# print(redis.scard('tags_1'))
+# # 查询指定集合的长度
+#
+# redis.sadd('tags_1','维鲁斯','拉亚斯特','亚托克斯')
+# # 向集合中尝试插入三个元素，返回int即成功插入的个数；
+# # 由于集合不允许出现重复元素，所以返回的int小于等于输入参数；
+#
+# redis.srem('tags_1','拉亚斯特')
+# # 从集合中删除元素，返回int即成功删除的个数
+# print(redis.spop('tags_1'))
+# # 从集合中随机删除一个元素，并返回该元素
+# print(redis.srandmember('tags_1'))
+# # 随机返回集合中的一个元素，但不删除该元素
+#
+# redis.smove('tags_1','tags_2','亚托克斯')
+# # 将集合tags_1中的元素'亚托克斯'移至集合tags_2中
+#
+# redis.sismember('tags_1','维鲁斯')
+# # 查询某个元素是否在集合中，由于集合没有index的概念，所以只能采用“按值查找”
+# print(redis.smembers('tags_1'))
+# # 查询全体：返回该集合中的全部元素组成的集合，返回值<class 'set'>
+#
+#
+# # 集合的【交、并、差操作】
+# redis.sinter(['tags_1','tags_2'])
+# # 返回两个集合的交集，且返回的格式为set：<class 'set'>
+# redis.sinterstore('tags_new',['tags_1','tags_2'])
+# # 将两个集合取交集，并将交集保存为新的Redis对象：tags_new
+# # 这个函数也有返回值int，为['tags_1','tags_2']中相交元素的个数
+# # 完全相同的用法：sunion()、sunionstore()、sdiff()、sdiffstore()
+
+
+
+
+
+
+# #（5）
+# # 键-有序集合
+# redis.zadd('grade_1',{'艾欧尼亚'：100})
+# 注意此方法只接受两个参数，第一个为键名，第二个为字典类型
+# # 返回int即成功添加的有序对个数，其中艾欧尼亚分数为100；诺克萨斯分数为80
+# # 如果数据库中已有艾欧尼亚，那么再对艾欧尼亚用一次zadd，则新赋的分数会覆盖掉之前艾欧尼亚的分数
+#
+# print(redis.zcard('grade_1'))
+# # 返回项的总数
+# print(redis.zcount('grade_1',80,95))
+# # 返回指定分数区间的项的总数
+#
+# print(redis.zscore('grade_1','艾欧尼亚'))
+# # 查看指定项的分数
+# print(redis.zincrby('grade_!','艾欧尼亚',-2))
+# # 修改指定项的分数；同时返回指定对象修改后的分数
+# # 可以取int参数为0，即可查看指定对象的分数
+# print(redis.zrank('grade_1','艾欧尼亚'))
+# # 获取指定项的排名
+# print(redis.zrevrank('grade_1','艾欧尼亚'))
+# # 获取指定项的倒数排名
+#
+# print(redis.zrevrange('grade_1',0,3))
+# # 获取指定排名区间的项，返回list类型
+# print(redis.zrangebyscore('grade_1',80,95))
+# # 获取指定分数区间的项，返回list类型
+#
+# print(redis.zrem('grade_1','艾欧尼亚'))
+# # 删除指定名称的项，返回成功删除个数
+# print(redis.zremrangebyrank('grade_1',0,0))
+# # 删除指定排名区间的项，返回成功删除个数
+# print(redis.zremrangebyscore('grade_1',80,95))
+# # 删除指定分数区间的项，返回成功删除个数
+
+
+
+
+
+# #（6）
+# # 键-字典
+# redis.hset('dict_1','厂长',100)
+# # 返回int，即成功添加的个数
+# redis.hmset('dict_1',{'亚索':10,'瑞文':1})
+# # 批量添加
+# redis.hsetnx('dict_1','李哥',1000)
+# # 如果字典中'李哥'不存在，则添加一个键值对；返回int，即成功添加的个数
+#
+# redis.hget('dict_1','李哥')
+# # 返回值
+# redis.hmget('dict_1',['厂长','李哥'])
+# # 返回由值组成的列表
+#
+# redis.hdel('dict_1','李哥')
+# # 删除指定键值对
+#
+# redis.hexists('dict_1','厂长')
+# # 查询字典中是否有某键值对
+#
+# redis.hlen('dict_1')
+# # 返回int，即字典中的键值对个数
+#
+# redis.hkeys('dict_1')
+# # 返回由全部键名组成的列表
+# redis.hvals('dict_1')
+# # 返回由全部值组成的列表
+# redis.hgetall('dict_1')
+# # 返回由全部键值对组成的字典；事实上获取操作也可以通过这个字典
+# # 值得注意的，不管键还是值都是二进制的形式
+
+
