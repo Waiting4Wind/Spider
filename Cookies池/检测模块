@@ -1,0 +1,60 @@
+from Cookies池_存储模块 import RedisClient
+import json
+import requests
+from requests.exceptions import ConnectionError
+TEST_URL_MAP = {'weibo': 'https://m.weibo.cn/api/container/getIndex?uid=1804544030&type=uid&page=1&containerid=1076031804544030'}
+# 这里的weibo指的是，这个Cookies是为了爬取微博网站而搭建的
+# 这里的URL是，选定的检测网站（检测模块的测试网站）
+
+
+class ValidTester(object):
+    def __init__(self, website='default'):
+        self.website = website
+        self.cookies_db = RedisClient('cookies', self.website)
+        self.accounts_db = RedisClient('accounts', self.website)
+
+    def test(self, username, cookies):
+        raise NotImplementedError
+
+    def run(self):
+        cookies_groups = self.cookies_db.all()
+        for username, cookies in cookies_groups.items():
+            self.test(username, cookies)
+
+# 上面的ValidTester作为父类，使支持对多种网站的检测模块；
+# 下面的WeiboValidTester作为子类，指定了website为实例属性
+# 仅对父类的test方法做了修改，其余不变
+class WeiboValidTester(ValidTester):
+    def __init__(self, website='weibo'):
+        ValidTester.__init__(self, website)
+
+    def test(self, username, cookies):
+        print(' 正在测试 Cookies', ' 用户名 ', username)
+        try:
+            cookies = json.loads(cookies)
+    # 在redis库中存储的cookies都是作为json对象，要先json.loads反序列化
+    # 如果不能反序列化，直接说明cookies是无效的，删除，return
+        except TypeError:
+            print('Cookies 不合法 ', username)
+            self.cookies_db.delete(username)
+            print(' 删除 Cookies', username)
+            return
+
+    # 得到了python环境下的实例对象cookies
+        try:
+            test_url = TEST_URL_MAP[self.website]
+            response = requests.get(test_url, cookies=cookies, timeout=5, allow_redirects=False)
+            if response.status_code == 200:
+                print('Cookies 有效 ', username)
+                print(' 部分测试结果 ', response.text[0:50])
+            else:
+                print(response.status_code, response.headers)
+                print('Cookies 失效 ', username)
+                self.cookies_db.delete(username)
+                print(' 删除 Cookies', username)
+        except ConnectionError as e:
+            print(' 发生异常 ', e.args)
+
+# 设置好对应的检测链接，我们用一个个 Cookies 去请求这个链接
+# 如果请求成功，或者状态码合法，那么该 Cookies 有效；
+# 如果请求失败，或者无法获取正常的数据，比如直接跳回登录页面或者跳到验证页面，那么此 Cookies 无效，我们需要将该 Cookies 从数据库中移除。
